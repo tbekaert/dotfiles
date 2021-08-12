@@ -1,0 +1,18 @@
+[user]
+  email = tbekaert@interdrinks.fr
+  name = Thomas Bekaert
+[merge]
+  tool = vscode
+[mergetool "vscode"]
+  cmd = code --wait $MERGED
+[diff]
+  tool = vscode
+[difftool "vscode"]
+  cmd = code --wait --diff $LOCAL $REMOTE
+[alias]
+  lg = log --oneline --pretty='- %s %Cgreen(%cr) %Cblue<%an>'
+  amend = commit --amend --no-edit
+  force = push --force-with-lease
+  fam = "!f() { git add . && git amend -n && git force; }; f"
+[core]
+	ignorecase = true

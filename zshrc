@@ -1,3 +1,8 @@
+
+#### FIG ENV VARIABLES ####
+# Please make sure this block is at the start of this file.
+# [ -s ~/.fig/shell/pre.sh ] && source ~/.fig/shell/pre.sh
+#### END FIG ENV VARIABLES ####
 source ~/antigen.zsh
 source ~/.nvm/nvm.sh
 
@@ -37,29 +42,42 @@ cyan=6;
 white=7;
 
 alias glff="git pull --ff-only"
-alias reset-packages="rm -rf node_modules && yarn install"
-alias reset-packages="rm -rf node_modules && yarn install"
+alias reset-packages="rm -rf node_modules && yarn install --frozen-lockfile"
 
 function gpr() {
-  git push --set-upstream origin $(git symbolic-ref HEAD | sed -e 's,.*/\(.*\),\1,')
+  BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+  git push --set-upstream origin $BRANCH_NAME
   gh pr create --title "$1" --body "" --assignee tbekaert --label "Do not merge (WIP)" --draft
 }
 
 function hotfix() {
   cecho $green "→ Commit and push hotfix"
   git commit -m "$1"
-  git push
-  HASH=$(git rev-parse HEAD)
-  cecho $cyan "Commit hash: $HASH"
-  cecho $green "→ Updating staging"
-  git checkout staging
-  git reset --hard origin/staging
-  cecho $green "→ Cherry pick commit and push it on staging"
-  echo "git cherry-pick $HASH"
-  git cherry-pick $HASH
-  git push
-  cecho $green "→ Go back to master branch"
-  git checkout -
+  if [[ $? -ne 0 ]]; then
+    cecho $red "Error while committing"
+  else
+    git push
+    HASH=$(git rev-parse HEAD)
+    cecho $cyan "Commit hash: $HASH"
+    HAS_CHANGED_FILES=$(git status --porcelain)
+    if [ -n "${HAS_CHANGED_FILES}" ]; then
+      cecho $red "→ Uncommited change detected, stashing"
+      git stash save
+    fi
+    cecho $green "→ Updating staging"
+    git checkout staging
+    git reset --hard origin/staging
+    cecho $green "→ Cherry pick commit and push it on staging"
+    echo "git cherry-pick $HASH"
+    git cherry-pick $HASH
+    git push
+    cecho $green "→ Go back to master branch"
+    git checkout -
+    if [ -n "${HAS_CHANGED_FILES}" ]; then
+      cecho $red "→ Restoring uncommited changes"
+      git stash pop
+    fi
+  fi
 }
 
 function mergeOn() {
@@ -75,12 +93,16 @@ function mergeOn() {
   git reset --hard origin/$MERGE_ON
   cecho $green "→ Merging branch $BRANCH_NAME"
   git merge $BRANCH_NAME --no-edit
-  git push
-  cecho $green "→ Switching back to $BRANCH_NAME"
-  git checkout $BRANCH_NAME
-  if [ -n "${HAS_CHANGED_FILES}" ]; then
-    cecho $red "→ Restoring uncommited changes"
-    git stash pop
+  if [[ $? -ne 0 ]]; then
+    cecho $red "Conflicts detected."
+  else
+    git push
+    cecho $green "→ Switching back to $BRANCH_NAME"
+    git checkout $BRANCH_NAME
+    if [ -n "${HAS_CHANGED_FILES}" ]; then
+      cecho $red "→ Restoring uncommited changes"
+      git stash pop
+    fi
   fi
 }
 
@@ -93,4 +115,10 @@ alias prc="gh pr checkout"
 antigen apply
 
 [[ -s $HOME/.nvm/nvm.sh ]] && . $HOME/.nvm/nvm.sh # This loads NVM
+
+
+#### FIG ENV VARIABLES ####
+# Please make sure this block is at the end of this file.
+# [ -s ~/.fig/fig.sh ] && source ~/.fig/fig.sh
+#### END FIG ENV VARIABLES ####
 

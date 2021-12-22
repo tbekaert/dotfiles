@@ -5,7 +5,9 @@
     ~/.ssh/config:
         path: ssh/config
         create: true
-    ~/.zshrc: zshrc
+    ~/.zshrc: 
+        path: zshrc
+        force: true
 
 - create:
     - ~/workspace
